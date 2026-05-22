@@ -63,9 +63,6 @@ def home():
 
 
 
-
- 
-
 # ------------------- Register -------------------
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -133,7 +130,7 @@ def login():
                 session['user'] = {
                   'id': user['id'],
                    'name': user['name'],
-                  'gender': user['gender'] if user['gender'] else ''
+                  'gender': user['gender'] or''
       }
 
                 cursor.close()
@@ -375,8 +372,7 @@ def admin_dashboard(role):
         return redirect('/')
 
     conn = get_db_connection()
-   cursor = conn.cursor()
-
+    cursor = conn.cursor()
     role = role.lower()   # ✅ normalize once
 
     # ---------------- MUNICIPAL ----------------
@@ -716,7 +712,7 @@ import requests
 @app.route('/get_user_location/<int:user_id>')
 def get_user_location(user_id):
     conn = get_db_connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    ccursor = conn.cursor()
 
     cursor.execute("SELECT lat, lon, manual_location FROM civic_issues WHERE user_id=? ORDER BY id DESC LIMIT 1", (user_id,))
     loc = cursor.fetchone()
@@ -727,7 +723,7 @@ def get_user_location(user_id):
     lon = loc['lon']
 
     # If lat/lon missing, but manual_location exists → geocode using OpenStreetMap Nominatim
-    if (not lat or not lon) and loc('manual_location'):
+    if (not lat or not lon) and loc['manual_location']:
         try:
             url = "https://nominatim.openstreetmap.org/search"
             params = {
