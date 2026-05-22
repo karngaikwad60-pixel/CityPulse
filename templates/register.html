@@ -145,19 +145,8 @@ a{
     100%{transform:translateY(0);}
 }
 
-/* Tablet */
-@media(max-width:992px){
+/* RESPONSIVE */
 
-    .container{
-        width:95%;
-    }
-
-    .form-section{
-        padding:35px;
-    }
-}
-
-/* Mobile */
 @media(max-width:768px){
 
     body{
@@ -165,59 +154,68 @@ a{
     }
 
     .container{
-        flex-direction:column;
+        width:100%;
+        max-width:100%;
+        min-height:auto;
+        flex-direction:row; /* keep desktop layout */
     }
 
     .image-section{
-        width:100%;
-        padding:25px;
+        width:45%;
+        padding:20px;
     }
 
     .image-section img{
-        width:80%;
-        max-width:280px;
-    }
-
-    .form-section{
         width:100%;
-        padding:25px;
-    }
-
-    .form-section h2{
-        font-size:22px;
-    }
-
-    input,
-    select,
-    button{
-        font-size:14px;
-    }
-}
-
-/* Small phones */
-@media(max-width:480px){
-
-    .form-section{
-        padding:18px;
-    }
-
-    .image-section img{
         max-width:220px;
+    }
+
+    .form-section{
+        width:55%;
+        padding:20px;
     }
 
     .form-section h2{
         font-size:20px;
+        margin-bottom:15px;
     }
 
     label{
-        font-size:13px;
+        font-size:12px;
+        margin-top:10px;
     }
 
     input,
     select{
+        padding:9px 12px;
+        font-size:12px;
+    }
+
+    button{
         padding:10px;
+        font-size:13px;
+        margin-top:18px;
+    }
+
+    p{
+        font-size:12px;
     }
 }
+
+@media(max-width:480px){
+
+    .container{
+        transform:scale(.92);
+    }
+
+    .image-section img{
+        max-width:180px;
+    }
+
+    .form-section{
+        padding:15px;
+    }
+} 
 </style>
 
 </head>
