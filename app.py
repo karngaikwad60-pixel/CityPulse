@@ -6,7 +6,7 @@ from math import radians, cos, sin, asin, sqrt
 from flask import send_from_directory
 import uuid
 from flask import Flask, render_template, request, redirect, session
-import pymysql
+import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
@@ -20,14 +20,11 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'avif','webp'}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ------------------- DB Connection -------------------
+# NEW SQLITE VERSION
 def get_db_connection():
-    return pymysql.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="citypulse",
-        cursorclass=pymysql.cursors.DictCursor   # 🔥 IMPORTANT
-    )
+    conn = sqlite3.connect("citypulse.db")
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
@@ -81,7 +78,7 @@ def register():
 
         cursor.execute("""
             INSERT INTO users (name, email, phone, age, gender, password)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            VALUES (?, ?, ?, ?, ?, ?)
         """, (name, email, phone, age, gender, password_hash))
 
         conn.commit()
@@ -109,7 +106,7 @@ def login():
 
         # ================= USER LOGIN =================
         if role == 'user':
-            cursor.execute("SELECT * FROM users WHERE phone=%s", (phone,))
+            cursor.execute("SELECT * FROM users WHERE phone=?", (phone,))
             user = cursor.fetchone()
 
             if user and check_password_hash(user['password'], password):
@@ -129,7 +126,7 @@ def login():
 
         # ================= ADMIN LOGIN =================
         elif role == 'admin':
-            cursor.execute("SELECT * FROM admins WHERE phone=%s", (phone,))
+            cursor.execute("SELECT * FROM admins WHERE phone=?", (phone,))
             admin = cursor.fetchone()
 
             if admin and admin['password'] == password:
@@ -163,7 +160,7 @@ def dashboard():
     cursor.execute("""
         SELECT id, issue_type, status, 'civic' AS category
         FROM civic_issues
-        WHERE user_id=%s
+        WHERE user_id=?
     """, (session['user']['id'],))
     civic = cursor.fetchall()
 
@@ -171,7 +168,7 @@ def dashboard():
     cursor.execute("""
         SELECT id, emergency_type, status, 'emergency' AS category
         FROM emergencies
-        WHERE user_id=%s
+        WHERE user_id=?
     """, (session['user']['id'],))
     emergencies = cursor.fetchall()
 
@@ -239,7 +236,7 @@ def civic_issue():
         cursor.execute("""
             INSERT INTO civic_issues
             (user_id, category, issue_type, description, image, lat, lon, manual_location, assigned_admin, status)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'SUBMITTED')
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'SUBMITTED')
         """,(session['user']['id'],category,issue_type,issue_type,filename,lat,lon,manual_location,nearest['id']))
         conn.commit()
         cursor.close()
@@ -286,7 +283,7 @@ def emergency():
         # Fetch admins
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT id, lat, lon FROM admins WHERE role=%s", (role,))
+        cursor.execute("SELECT id, lat, lon FROM admins WHERE role=?", (role,))
         admins = cursor.fetchall()
         if not admins:
             cursor.close()
@@ -300,7 +297,7 @@ def emergency():
         cursor.execute("""
             INSERT INTO emergencies
             (user_id, emergency_type, lat, lon, manual_location, image, status, assigned_admin)
-            VALUES (%s,%s,%s,%s,%s,%s,'SUBMITTED',%s)
+            VALUES (?, ?, ?, ?, ?, ?, 'SUBMITTED', ?)
         """, (session['user']['id'], emergency_type, lat, lon, manual_location, filename, nearest['id']))
         conn.commit()
         cursor.close()
@@ -332,10 +329,15 @@ def women_safety():
         # Insert new alert if not exists, else update location dynamically
         cursor.execute("""
             INSERT INTO women_alerts (user_id, lat, lon, assigned_police, status)
-            VALUES (%s, %s, %s, %s, 'SUBMITTED')
-            ON DUPLICATE KEY UPDATE lat=%s, lon=%s
-        """, (session['user']['id'], lat, lon, nearest['id'], lat, lon))
-
+            VALUES (?, ?, ?, ?)
+         
+        """, (
+session['user']['id'],
+lat,
+lon,
+nearest['id'],
+'SUBMITTED'
+)) 
         conn.commit()
         cursor.close()
         conn.close()
@@ -372,7 +374,7 @@ def admin_dashboard(role):
                    ci.status
             FROM civic_issues ci
             JOIN users u ON ci.user_id = u.id
-            WHERE ci.assigned_admin=%s
+            WHERE ci.assigned_admin=?
             ORDER BY ci.id DESC
         """, (session['admin']['id'],))
 
@@ -389,7 +391,7 @@ def admin_dashboard(role):
                    w.status
             FROM women_alerts w
             JOIN users u ON w.user_id = u.id
-            WHERE w.assigned_police=%s
+            WHERE w.assigned_police=?
             ORDER BY w.id DESC
         """, (session['admin']['id'],))
 
@@ -406,7 +408,7 @@ def admin_dashboard(role):
                    e.status
             FROM emergencies e
             JOIN users u ON e.user_id = u.id
-            WHERE e.assigned_admin=%s
+            WHERE e.assigned_admin=?
             ORDER BY e.id DESC
         """, (session['admin']['id'],))
 
@@ -439,7 +441,7 @@ def admin_track_item(role, item_id):
             SELECT ci.*, u.name, u.phone, u.id as user_id
             FROM civic_issues ci
             JOIN users u ON ci.user_id=u.id
-            WHERE ci.id=%s
+            WHERE ci.id=?
         """, (item_id,))
         request_type = "civic"
 
@@ -448,7 +450,7 @@ def admin_track_item(role, item_id):
             SELECT e.*, u.name, u.phone, u.id as user_id
             FROM emergencies e
             JOIN users u ON e.user_id=u.id
-            WHERE e.id=%s
+            WHERE e.id=?
         """, (item_id,))
         request_type = "emergency"
 
@@ -477,11 +479,11 @@ def update_status():
     conn = get_db_connection()
     cursor = conn.cursor()
     if role=='Municipal':
-        cursor.execute("UPDATE civic_issues SET status=%s WHERE id=%s", (status,item_id))
+        cursor.execute("UPDATE civic_issues SET status=? WHERE id=?", (status,item_id))
     elif role=='Police':
-        cursor.execute("UPDATE women_alerts SET status=%s WHERE id=%s", (status,item_id))
+        cursor.execute("UPDATE women_alerts SET status=? WHERE id=?", (status,item_id))
     else:
-        cursor.execute("UPDATE emergencies SET status=%s WHERE id=%s", (status,item_id))
+        cursor.execute("UPDATE emergencies SET status=? WHERE id=?", (status,item_id))
     conn.commit()
     cursor.close()
     conn.close()
@@ -511,7 +513,7 @@ def user_requests():
     cursor.execute("""
         SELECT id, issue_type, status, 'civic' AS category
         FROM civic_issues
-        WHERE user_id=%s
+        WHERE user_id=?
     """, (user_id,))
     civic_rows = cursor.fetchall()
 
@@ -528,7 +530,7 @@ def user_requests():
     cursor.execute("""
         SELECT id, emergency_type, status, 'emergency' AS category
         FROM emergencies
-        WHERE user_id=%s
+        WHERE user_id=?
     """, (user_id,))
     emergency_rows = cursor.fetchall()
 
@@ -564,7 +566,7 @@ def user_requests():
     cursor.execute("""
         SELECT id, issue_type, status, 'civic' AS category
         FROM civic_issues
-        WHERE user_id=%s
+        WHERE user_id=?
     """, (user_id,))
     civic_rows = cursor.fetchall()
 
@@ -581,7 +583,7 @@ def user_requests():
     cursor.execute("""
         SELECT id, emergency_type, status, 'emergency' AS category
         FROM emergencies
-        WHERE user_id=%s
+        WHERE user_id=?
     """, (user_id,))
     emergency_rows = cursor.fetchall()
 
@@ -624,7 +626,7 @@ def send_message():
     cursor.execute("""
         INSERT INTO chat_messages 
         (request_type, request_id, sender, sender_id, message)
-        VALUES (%s, %s, %s, %s, %s)
+        VALUES (?, ?, ?, ?, ?)
     """, (
         data['request_type'],
         data['request_id'],
@@ -652,7 +654,7 @@ def get_messages(request_type, request_id):
     cursor.execute("""
         SELECT sender, message, created_at
         FROM chat_messages
-        WHERE request_type=%s AND request_id=%s
+        WHERE request_type=? AND request_id=?
         ORDER BY created_at ASC
     """, (request_type, request_id))
 
@@ -696,7 +698,7 @@ def get_user_location(user_id):
     conn = get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
-    cursor.execute("SELECT lat, lon, manual_location FROM civic_issues WHERE user_id=%s ORDER BY id DESC LIMIT 1", (user_id,))
+    cursor.execute("SELECT lat, lon, manual_location FROM civic_issues WHERE user_id=? ORDER BY id DESC LIMIT 1", (user_id,))
     loc = cursor.fetchone()
     cursor.close()
     conn.close()
