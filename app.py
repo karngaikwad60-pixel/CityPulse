@@ -445,44 +445,80 @@ def admin_dashboard(role):
     )
 # ------------------- Admin Track -------------------
 @app.route('/admin/track/<role>/<int:item_id>')
-def admin_track_item(role, item_id):
-    if 'admin' not in session:
+def admin_track_item():
+
+    if 'admin_id' not in session:
         return redirect('/')
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
     if role == 'Municipal':
+
         cursor.execute("""
-            SELECT ci.*, u.name, u.phone, u.id as user_id
-            FROM civic_issues ci
-            JOIN users u ON ci.user_id=u.id
-            WHERE ci.id=?
-        """, (item_id,))
-        request_type = "civic"
+        SELECT
+            ci.*,
+            u.name,
+            u.phone,
+            u.id as user_id
+
+        FROM civic_issues ci
+        JOIN users u
+        ON ci.user_id=u.id
+
+        WHERE ci.id=?
+        """,(item_id,))
+
+        request_type="civic"
 
     else:
-        cursor.execute("""
-            SELECT e.*, u.name, u.phone, u.id as user_id
-            FROM emergencies e
-            JOIN users u ON e.user_id=u.id
-            WHERE e.id=?
-        """, (item_id,))
-        request_type = "emergency"
 
-    item = cursor.fetchone()
-    cursor.close()
+        cursor.execute("""
+        SELECT
+            e.*,
+            u.name,
+            u.phone,
+            u.id as user_id
+
+        FROM emergencies e
+        JOIN users u
+        ON e.user_id=u.id
+
+        WHERE e.id=?
+        """,(item_id,))
+
+        request_type="emergency"
+
+
+
+    item=cursor.fetchone()
+
+
+    # GET FULL ADMIN RECORD
+    cursor.execute("""
+    SELECT *
+    FROM admins
+    WHERE id=?
+    """,(session['admin_id'],))
+
+    admin=cursor.fetchone()
+
     conn.close()
 
+
     return render_template(
+
         'tracking.html',
+
         item=item,
         role=role,
-        admin=session['admin'],
+
+        admin=admin,
+
         request_type=request_type,
         request_id=item_id
-    )
 
+    )
 # ------------------- Update Status -------------------
 @app.route('/admin/update_status', methods=['POST'])
 def update_status():
@@ -506,7 +542,36 @@ def update_status():
     return redirect(f"/admin/{role}")
 
 # 
+@app.route('/update_admin_location', methods=['POST'])
+def update_admin_location():
 
+    if 'admin_id' not in session:
+        return jsonify({"status":"error"})
+
+    data=request.get_json()
+
+    conn=get_db_connection()
+    cursor=conn.cursor()
+
+    cursor.execute("""
+    UPDATE admins
+    SET lat=?,
+        lon=?
+    WHERE id=?
+    """,
+    (
+        data['lat'],
+        data['lon'],
+        session['admin_id']
+    ))
+
+    conn.commit()
+
+    conn.close()
+
+    return jsonify({"status":"success"})
+
+    
 #----------------------------------------------------------------------------------------------     
 @app.route('/city_info')
 def city_info():
