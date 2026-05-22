@@ -112,69 +112,222 @@ body {
 <!-- MAP -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
-
 <script>
-let userLat = {{ item.lat or 18.5204 }};
-let userLon = {{ item.lon or 73.8567 }};
-let adminLat = {{ admin.lat or 18.5204 }};
-let adminLon = {{ admin.lon or 73.8567 }};
+let userLat = parseFloat("{{ item.lat or 18.5204 }}");
+let userLon = parseFloat("{{ item.lon or 73.8567 }}");
 
-// ✅ CONDITION
-const isWomenSafety = "{{ item.issue_type or item.emergency_type }}".toLowerCase().includes("women");
+let adminLat = parseFloat("{{ admin.lat or 18.5204 }}");
+let adminLon = parseFloat("{{ admin.lon or 73.8567 }}");
 
-const map = L.map('map').setView([userLat, userLon], 15);
+const issueType =
+"{{ item.issue_type or item.emergency_type or '' }}"
+.toLowerCase();
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+const isWomenSafety =
+issueType.includes("women");
 
-const userMarker = L.marker([userLat, userLon]).addTo(map);
-const adminMarker = L.marker([adminLat, adminLon]).addTo(map);
+const map = L.map("map").setView(
+[userLat,userLon],
+16
+);
 
-let routeControl = L.Routing.control({
-    waypoints: [L.latLng(adminLat, adminLon), L.latLng(userLat, userLon)],
-    addWaypoints: false
-}).addTo(map);
+L.tileLayer(
+'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+{
+maxZoom:19
+}
+).addTo(map);
 
-// ✅ ADMIN ALWAYS LIVE
-if (navigator.geolocation){
-    setInterval(() => {
-        navigator.geolocation.getCurrentPosition(pos => {
-            adminLat = pos.coords.latitude;
-            adminLon = pos.coords.longitude;
 
-            adminMarker.setLatLng([adminLat, adminLon]);
+/* USER MARKER */
 
-            routeControl.setWaypoints([
-                L.latLng(adminLat, adminLon),
-                L.latLng(userLat, userLon)
-            ]);
-        });
-    }, 5000);
+const userMarker = L.marker(
+[userLat,userLon]
+)
+.addTo(map)
+.bindPopup("Citizen");
+
+
+/* ADMIN MARKER */
+
+const adminMarker = L.marker(
+[adminLat,adminLon]
+)
+.addTo(map)
+.bindPopup("Admin");
+
+
+/* ROUTE */
+
+let routeControl=L.Routing.control({
+
+waypoints:[
+
+L.latLng(adminLat,adminLon),
+L.latLng(userLat,userLon)
+
+],
+
+lineOptions:{
+styles:[
+{
+color:"#dc2626",
+weight:5
+}
+]
+},
+
+addWaypoints:false,
+draggableWaypoints:false,
+fitSelectedRoutes:true
+
+})
+.addTo(map);
+
+
+
+function updateRoute(){
+
+routeControl.setWaypoints([
+
+L.latLng(adminLat,adminLon),
+L.latLng(userLat,userLon)
+
+]);
+
 }
 
-// ✅ USER TRACKING CONDITION
+
+
+/* LIVE ADMIN GPS */
+
+if(navigator.geolocation){
+
+navigator.geolocation.watchPosition(
+
+(position)=>{
+
+adminLat=
+position.coords.latitude;
+
+adminLon=
+position.coords.longitude;
+
+
+/* Update marker */
+
+adminMarker.setLatLng([
+adminLat,
+adminLon
+]);
+
+
+
+/* Save admin live location */
+
+fetch("/update_admin_location",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+
+lat:adminLat,
+lon:adminLon
+
+})
+
+});
+
+
+updateRoute();
+
+},
+
+(err)=>{
+
+console.log(
+"GPS error:",
+err
+);
+
+},
+
+{
+
+enableHighAccuracy:true,
+timeout:10000,
+maximumAge:0
+
+}
+
+);
+
+}
+
+
+
+/* USER TRACKING */
+
 if(isWomenSafety){
-    // 🔴 LIVE USER TRACKING
-    setInterval(() => {
-        fetch('/get_user_location/{{ item.user_id }}')
-        .then(res => res.json())
-        .then(loc => {
-            if(loc.lat && loc.lon){
-                userLat = parseFloat(loc.lat);
-                userLon = parseFloat(loc.lon);
 
-                userMarker.setLatLng([userLat, userLon]);
+setInterval(()=>{
 
-                routeControl.setWaypoints([
-                    L.latLng(adminLat, adminLon),
-                    L.latLng(userLat, userLon)
-                ]);
-            }
-        });
-    }, 5000);
-} else {
-    // 🟢 STATIC (no updates)
-    console.log("Static tracking active");
+fetch(
+"/get_user_location/{{ item.user_id }}"
+)
+
+.then(res=>res.json())
+
+.then(data=>{
+
+if(data.lat && data.lon){
+
+userLat=parseFloat(data.lat);
+
+userLon=parseFloat(data.lon);
+
+userMarker.setLatLng([
+userLat,
+userLon
+]);
+
+updateRoute();
+
 }
+
+})
+
+.catch(err=>{
+
+console.log(err);
+
+});
+
+},3000);
+
+}
+
+else{
+
+userMarker.setLatLng([
+userLat,
+userLon
+]);
+
+}
+
+
+map.fitBounds([
+
+[adminLat,adminLon],
+[userLat,userLon]
+
+]);
+
 </script>
 
 <!-- CHAT -->
