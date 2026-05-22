@@ -12,6 +12,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from init_db import *
 app = Flask(__name__)
+init_db()
 app.secret_key = "YOUR_SECRET_KEY"
 
 UPLOAD_FOLDER = "uploads"
@@ -23,7 +24,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # NEW SQLITE VERSION
 def get_db_connection():
     conn = sqlite3.connect(
-        "d.db",
+        "citypulse.db",
         timeout=30,          # wait before throwing lock error
         check_same_thread=False
     )
