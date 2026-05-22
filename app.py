@@ -22,8 +22,18 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # ------------------- DB Connection -------------------
 # NEW SQLITE VERSION
 def get_db_connection():
-    conn = sqlite3.connect("citypulse.db")
+    conn = sqlite3.connect(
+        "citypulse.db",
+        timeout=30,          # wait before throwing lock error
+        check_same_thread=False
+    )
+
     conn.row_factory = sqlite3.Row
+
+    # improves concurrent reads/writes
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
+
     return conn
 
 def allowed_file(filename):
@@ -74,22 +84,32 @@ def register():
         password_hash = generate_password_hash(password)
 
         conn = get_db_connection()
-        cursor = conn.cursor()
 
-        cursor.execute("""
-            INSERT INTO users (name, email, phone, age, gender, password)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (name, email, phone, age, gender, password_hash))
+        try:
+            cursor = conn.cursor()
 
-        conn.commit()
-        cursor.close()
-        conn.close()
+            cursor.execute("""
+                INSERT INTO users
+                (name,email,phone,age,gender,password)
+                VALUES (?,?,?,?,?,?)
+            """,(
+                name,
+                email,
+                phone,
+                age,
+                gender,
+                password_hash
+            ))
+
+            conn.commit()
+
+        finally:
+            cursor.close()
+            conn.close()
 
         return redirect('/login')
 
     return render_template('register.html')
-
-
 # ------------------- Login -------------------
 from flask import Flask, request, render_template, redirect, session
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -355,7 +375,7 @@ def admin_dashboard(role):
         return redirect('/')
 
     conn = get_db_connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
+   cursor = conn.cursor()
 
     role = role.lower()   # ✅ normalize once
 
