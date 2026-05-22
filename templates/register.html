@@ -16,17 +16,18 @@
 }
 
 body{
-    min-height:100vh;
+    min-height:100dvh;
     background:linear-gradient(120deg,#e6f4f1,#f5fbfa);
     display:flex;
     align-items:center;
     justify-content:center;
+    padding:20px;
 }
 
 /* Main Card */
 .container{
     width:1000px;
-    max-width:95%;
+    max-width:100%;
     background:#fff;
     display:flex;
     border-radius:18px;
@@ -41,11 +42,13 @@ body{
     display:flex;
     align-items:center;
     justify-content:center;
+    padding:20px;
 }
 
 .image-section img{
-    width:115%;
-    max-width:560px;
+    width:100%;
+    max-width:500px;
+    height:auto;
     animation:float 6s ease-in-out infinite;
 }
 
@@ -60,6 +63,7 @@ body{
     font-weight:600;
     color:#14532d;
     margin-bottom:20px;
+    text-align:center;
 }
 
 /* Inputs */
@@ -71,9 +75,10 @@ label{
     display:block;
 }
 
-input,select{
+input,
+select{
     width:100%;
-    padding:11px 14px;
+    padding:12px 14px;
     margin-top:6px;
     border-radius:10px;
     border:1px solid #d1fae5;
@@ -81,7 +86,8 @@ input,select{
     font-size:14px;
 }
 
-input:focus,select:focus{
+input:focus,
+select:focus{
     outline:none;
     border-color:#16a34a;
     box-shadow:0 0 0 2px rgba(22,163,74,0.2);
@@ -99,6 +105,7 @@ button{
     font-size:15px;
     font-weight:500;
     cursor:pointer;
+    transition:.3s;
 }
 
 button:hover{
@@ -138,11 +145,78 @@ a{
     100%{transform:translateY(0);}
 }
 
-/* Responsive */
+/* Tablet */
+@media(max-width:992px){
+
+    .container{
+        width:95%;
+    }
+
+    .form-section{
+        padding:35px;
+    }
+}
+
+/* Mobile */
 @media(max-width:768px){
-    .container{flex-direction:column;}
-    .image-section{width:100%;padding:30px 0;}
-    .form-section{width:100%;}
+
+    body{
+        padding:15px;
+    }
+
+    .container{
+        flex-direction:column;
+    }
+
+    .image-section{
+        width:100%;
+        padding:25px;
+    }
+
+    .image-section img{
+        width:80%;
+        max-width:280px;
+    }
+
+    .form-section{
+        width:100%;
+        padding:25px;
+    }
+
+    .form-section h2{
+        font-size:22px;
+    }
+
+    input,
+    select,
+    button{
+        font-size:14px;
+    }
+}
+
+/* Small phones */
+@media(max-width:480px){
+
+    .form-section{
+        padding:18px;
+    }
+
+    .image-section img{
+        max-width:220px;
+    }
+
+    .form-section h2{
+        font-size:20px;
+    }
+
+    label{
+        font-size:13px;
+    }
+
+    input,
+    select{
+        padding:10px;
+    }
 }
 </style>
 
