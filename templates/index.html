@@ -443,109 +443,54 @@ emergencies, and safety alerts with live GPS tracking.
 
 <script>
 
-let map;
-let marker;
-
-function initMap(lat,lon){
-
-    if(!map){
-
-        map=L.map('map').setView(
-            [lat,lon],
-            17
-        );
-
-        L.tileLayer(
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        {
-            maxZoom:19
-        }
-        ).addTo(map);
-
-        marker=L.marker(
-            [lat,lon]
-        )
-        .addTo(map);
-
-    }
-
-    marker.setLatLng([lat,lon]);
-
-    marker
-    .bindPopup(
-    `
-    📍 Your Live Location
-    <br>
-    Lat: ${lat.toFixed(6)}
-    <br>
-    Lon: ${lon.toFixed(6)}
-    `
-    )
-    .openPopup();
-
-    map.setView([lat,lon]);
-
-}
-
-
-/* HIGH ACCURACY GPS */
-
-if(navigator.geolocation){
-
-navigator.geolocation.watchPosition(
+navigator.geolocation.getCurrentPosition(
 
 (position)=>{
 
-let lat=position.coords.latitude;
-let lon=position.coords.longitude;
-
 console.log(
-"Accuracy:",
-position.coords.accuracy
+"SUCCESS",
+position.coords.latitude,
+position.coords.longitude
 );
-
-initMap(lat,lon);
 
 },
 
 (error)=>{
 
+let msg="";
+
+switch(error.code){
+
+case error.PERMISSION_DENIED:
+msg="Location permission denied";
+break;
+
+case error.POSITION_UNAVAILABLE:
+msg="Location unavailable";
+break;
+
+case error.TIMEOUT:
+msg="Location request timed out";
+break;
+
+default:
+msg="Unknown error";
+
+}
+
+alert(msg);
+
 console.log(error);
-
-alert(
-"Location access denied. Showing default location."
-);
-
-initMap(
-18.5204,
-73.8567
-);
 
 },
 
 {
-
 enableHighAccuracy:true,
-maximumAge:0,
-timeout:15000
-
+timeout:15000,
+maximumAge:0
 }
 
 );
-
-}
-else{
-
-alert(
-"Browser doesn't support GPS"
-);
-
-initMap(
-18.5204,
-73.8567
-);
-
-}
 
 </script>
 </body>
