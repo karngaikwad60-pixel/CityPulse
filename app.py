@@ -111,10 +111,10 @@ def login():
 
             if user and check_password_hash(user['password'], password):
                 session['user'] = {
-                    'id': user['id'],
-                    'name': user['name'],
-                    'gender': user.get('gender', '')  # ✅ safe
-                }
+                  'id': user['id'],
+                   'name': user['name'],
+                  'gender': user['gender'] if user['gender'] else ''
+      }
 
                 cursor.close()
                 conn.close()
@@ -707,7 +707,7 @@ def get_user_location(user_id):
     lon = loc['lon']
 
     # If lat/lon missing, but manual_location exists → geocode using OpenStreetMap Nominatim
-    if (not lat or not lon) and loc.get('manual_location'):
+    if (not lat or not lon) and loc('manual_location'):
         try:
             url = "https://nominatim.openstreetmap.org/search"
             params = {
