@@ -23,7 +23,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # NEW SQLITE VERSION
 def get_db_connection():
     conn = sqlite3.connect(
-        "citypulse.db",
+        "d.db",
         timeout=30,          # wait before throwing lock error
         check_same_thread=False
     )
@@ -571,7 +571,7 @@ def update_admin_location():
 
     return jsonify({"status":"success"})
 
-    
+
 #----------------------------------------------------------------------------------------------     
 @app.route('/city_info')
 def city_info():

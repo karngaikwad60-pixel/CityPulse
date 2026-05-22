@@ -439,31 +439,114 @@ emergencies, and safety alerts with live GPS tracking.
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 <script>
-// LIVE MAP CURRENT LOCATION
-let map, marker;
 
-function initMap(lat, lon){
-    map = L.map('map').setView([lat, lon], 16);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-        maxZoom:19
-    }).addTo(map);
+let map;
+let marker;
 
-    marker = L.marker([lat, lon]).addTo(map)
-        .bindPopup("Your Current Location")
-        .openPopup();
+function initMap(lat,lon){
+
+    if(!map){
+
+        map=L.map('map').setView(
+            [lat,lon],
+            17
+        );
+
+        L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+            maxZoom:19
+        }
+        ).addTo(map);
+
+        marker=L.marker(
+            [lat,lon]
+        )
+        .addTo(map);
+
+    }
+
+    marker.setLatLng([lat,lon]);
+
+    marker
+    .bindPopup(
+    `
+    📍 Your Live Location
+    <br>
+    Lat: ${lat.toFixed(6)}
+    <br>
+    Lon: ${lon.toFixed(6)}
+    `
+    )
+    .openPopup();
+
+    map.setView([lat,lon]);
+
 }
+
+
+/* HIGH ACCURACY GPS */
 
 if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(
-        pos => initMap(pos.coords.latitude, pos.coords.longitude),
-        () => initMap(19.0760, 72.8777), // fallback city
-        { enableHighAccuracy:true }
-    );
-}else{
-    initMap(19.0760, 72.8777);
-}
-</script>
 
+navigator.geolocation.watchPosition(
+
+(position)=>{
+
+let lat=position.coords.latitude;
+let lon=position.coords.longitude;
+
+console.log(
+"Accuracy:",
+position.coords.accuracy
+);
+
+initMap(lat,lon);
+
+},
+
+(error)=>{
+
+console.log(error);
+
+alert(
+"Location access denied. Showing default location."
+);
+
+initMap(
+18.5204,
+73.8567
+);
+
+},
+
+{
+
+enableHighAccuracy:true,
+maximumAge:0,
+timeout:15000
+
+}
+
+);
+
+}
+else{
+
+alert(
+"Browser doesn't support GPS"
+);
+
+initMap(
+18.5204,
+73.8567
+);
+
+}
+
+</script>
 </body>
 </html>
