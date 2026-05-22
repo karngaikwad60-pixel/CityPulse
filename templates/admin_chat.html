@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Admin Chat</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Poppins, sans-serif; background:#fff7ed; padding:20px; margin:0; }
+    .box { max-width:720px; margin:20px auto; border:1px solid #ddd; padding:15px; border-radius:10px; background:#fff; }
+    .messages { height:350px; overflow:auto; border:1px solid #eee; padding:10px; border-radius:8px; background:#fafafa; display:flex; flex-direction:column; gap:8px; }
+    .msg { max-width:75%; padding:8px 10px; border-radius:12px; font-size:14px; line-height:1.3; word-wrap:break-word; white-space:pre-wrap; }
+    .msg.user { align-self:flex-end; background:#dff3ea; color:#0b1220; }
+    .msg.admin { align-self:flex-start; background:#fff; border:1px solid #fdecea; color:#7f1d1d; }
+    .meta { display:flex; gap:8px; align-items:center; margin-bottom:10px; }
+    .input-row { display:flex; gap:8px; margin-top:12px; }
+    input#msg { flex:1; padding:10px 12px; border-radius:8px; border:1px solid #ddd; }
+    button { padding:10px 14px; border-radius:8px; border:none; cursor:pointer; background:#dc2626; color:#fff; }
+    .timestamp { font-size:11px; color:#6b7280; margin-top:4px; text-align:right; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h3>💬 User Communication</h3>
+    <div id="messages" class="messages"></div>
+
+    <div class="input-row">
+      <input id="msg" placeholder="Reply..." />
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+
+  <script>
+    // Template variables from server
+    const requestType = "{{ request_type }}"; // e.g., 'civic' or 'emergency'
+    const requestId = {{ request_id }};
+    const adminId = {{ admin.id }};
+
+    function escapeHtml(str){
+      if(!str && str !== 0) return '';
+      return String(str)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'",'&#39;');
+    }
+
+    function formatTime(ts){
+      try{
+        const d = new Date(ts);
+        if(isNaN(d)) return ts;
+        return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      }catch(e){
+        return ts;
+      }
+    }
+
+    async function loadMessages(){
+      const box = document.getElementById('messages');
+      box.innerHTML = '<div class="muted">Loading…</div>';
+      try{
+        const res = await fetch(`/get_messages/${encodeURIComponent(requestType)}/${encodeURIComponent(requestId)}`);
+        if(!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
+        box.innerHTML = '';
+        if(!Array.isArray(data) || data.length === 0){
+          box.innerHTML = '<div class="muted">No messages yet</div>';
+        } else {
+          data.forEach(m => {
+            const el = document.createElement('div');
+            el.className = 'msg ' + (m.sender === 'user' ? 'user' : 'admin');
+            const time = m.created_at ? formatTime(m.created_at) : '';
+            el.innerHTML = `<div>${escapeHtml(m.message)}</div><div class="timestamp">${time}</div>`;
+            box.appendChild(el);
+          });
+        }
+        box.scrollTop = box.scrollHeight;
+      }catch(err){
+        box.innerHTML = '<div class="muted">Unable to load messages</div>';
+        console.error(err);
+      }
+    }
+
+    async function send(){
+      const msgInput = document.getElementById('msg');
+      const message = msgInput.value.trim();
+      if(!message) return;
+      // optimistic UI
+      const box = document.getElementById('messages');
+      const el = document.createElement('div');
+      el.className = 'msg admin';
+      el.innerHTML = `<div>${escapeHtml(message)}</div><div class="timestamp">${formatTime(new Date())}</div>`;
+      box.appendChild(el);
+      box.scrollTop = box.scrollHeight;
+      msgInput.value = '';
+
+      try{
+        const res = await fetch('/send_message', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            request_type: requestType,
+            request_id: requestId,
+            sender: 'admin',
+            sender_id: adminId,
+            message: message
+          })
+        });
+        if(!res.ok){
+          console.error('Send failed', await res.text());
+        } else {
+          // reload authoritative messages
+          await loadMessages();
+        }
+      }catch(err){
+        console.error('Send error', err);
+      }
+    }
+
+    document.getElementById('sendBtn').addEventListener('click', send);
+    document.getElementById('msg').addEventListener('keypress', (e) => {
+      if(e.key === 'Enter') send();
+    });
+
+    // Polling
+    setInterval(loadMessages, 3000);
+    loadMessages();
+  </script>
+</body>
+</html>

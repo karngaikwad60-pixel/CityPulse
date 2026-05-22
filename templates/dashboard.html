@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>CityPulse – Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/static/css/userd.css">
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- 🔵 NAVBAR -->
+<div class="navbar">
+    <div class="logo">🏙 CityPulse</div>
+    <a href="/user/requests" class="nav-link">My Requests</a>
+ 
+</a>
+    <a href="/logout" class="logout">Logout</a>
+    <a href="/city_info" class="logout">🏙 City Info</a>
+</div>
+
+<!-- 🟢 MAIN -->
+<div class="container">
+
+    <h2>Welcome, {{ user.name }}</h2>
+    <p class="subtitle">Report city issues or request emergency help instantly</p>
+
+    <div class="grid">
+
+        <!-- CORE CIVIC -->
+        <a href="/civic_issue" class="service-card civic">
+            <h3>Civic Issues</h3>
+            <p>Roads, garbage, streetlights</p>
+        </a>
+
+        <!-- ANIMAL -->
+        <a href="/civic_issue?type=animal" class="service-card animal">
+            <h3>Animal & Stray</h3>
+            <p>Injured animals, stray dogs</p>
+        </a>
+
+        <!-- ELECTRICITY -->
+        <a href="/civic_issue?type=electricity" class="service-card electricity">
+            <h3>Electricity</h3>
+            <p>Power cuts, electric faults</p>
+        </a>
+
+        <!-- WATER -->
+        <a href="/civic_issue?type=water" class="service-card water">
+            <h3>Water & Sanitation</h3>
+            <p>Water supply & sewer issues</p>
+        </a>
+
+        <!-- TRANSPORT -->
+        <a href="/civic_issue?type=transport" class="service-card transport">
+            <h3>Public Transport</h3>
+            <p>Bus delays, rash driving</p>
+        </a>
+
+        <!-- EMERGENCY -->
+        <a href="/emergency" class="service-card emergency">
+            <h3>Emergency</h3>
+            <p>Fire, Ambulance</p>
+        </a>
+
+        <!-- ✅ WOMEN SAFETY (FIXED) -->
+
+      {% if user.gender and user.gender.lower() == 'female' %}
+      <a href="/women_safety" class="service-card women">
+    <h3>🛡 Women Safety</h3>
+    <p>Live SOS & police tracking</p>
+     </a>
+    {% endif %} 
+
+    </div>
+
+    <!-- USER ISSUES -->
+    {% if user_issues %}
+    <div class="issues-section">
+        <h3>Your Requests</h3>
+
+        {% for issue in user_issues %}
+        <div class="issue-card">
+            <p><strong>{{ issue.issue_type or issue.emergency_type }}</strong></p>
+            <a href="/user/chat/{{ 'civic' if issue.category else 'emergency' }}/{{ issue.id }}">
+                💬 Chat
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+</div>
+
+</body>
+</html>

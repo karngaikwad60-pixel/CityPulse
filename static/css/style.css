@@ -1,0 +1,44 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+h2 {
+    color: #2c3e50;
+}
+
+form input, form select, form textarea, button {
+    padding: 8px;
+    margin: 5px 0;
+}
+
+button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #2980b9;
+}
+
+.cards {
+    display: flex;
+    gap: 20px;
+}
+
+.card {
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    width: 200px;
+    text-align: center;
+    background-color: #ecf0f1;
+}
+
+.card a {
+    text-decoration: none;
+    color: #2c3e50;
+    font-weight: bold;
+}

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CityPulse Login</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins}
+body{
+min-height:100vh;
+background:#f1f5f9;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+/* MAIN CONTAINER */
+.auth-box{
+width:1050px;
+max-width:95%;
+background:#ffffff;
+border-radius:18px;
+display:flex;
+box-shadow:0 25px 60px rgba(30,64,175,.18);
+overflow:hidden;
+animation:fadeUp .8s ease;
+}
+
+/* LEFT */
+.auth-left{
+width:55%;
+padding:70px;
+}
+
+/* TITLE */
+.auth-title{
+font-size:26px;
+font-weight:600;
+color:#1e40af;
+margin-bottom:30px;
+}
+
+/* INPUT */
+.input-wrap{
+display:flex;
+align-items:center;
+gap:12px;
+padding:14px 18px;
+border-radius:14px;
+border:1px solid #cbd5f5;
+margin-bottom:18px;
+background:#f8fafc;
+transition:.3s;
+}
+.input-wrap:focus-within{
+border-color:#2563eb;
+box-shadow:0 0 0 3px rgba(37,99,235,.15);
+}
+.input-wrap input,
+.input-wrap select{
+border:none;
+outline:none;
+width:100%;
+background:transparent;
+font-size:14px;
+color:#1e293b;
+}
+
+/* BUTTON */
+.btn{
+margin-top:10px;
+background:#1e40af;
+color:#fff;
+border:none;
+padding:14px 42px;
+border-radius:14px;
+font-size:15px;
+cursor:pointer;
+transition:.3s;
+}
+.btn:hover{
+background:#2563eb;
+transform:translateY(-2px);
+box-shadow:0 10px 20px rgba(37,99,235,.3);
+}
+
+/* SMALL TEXT */
+.helper{
+margin-top:18px;
+font-size:13px;
+color:#475569;
+}
+
+/* RIGHT */
+.auth-right{
+width:45%;
+background:linear-gradient(160deg,#1e40af,#38bdf8);
+position:relative;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+/* CITY CIRCLES */
+.circle.one{
+width:420px;height:420px;
+background:rgba(255,255,255,.12);
+border-radius:50%;
+position:absolute;
+right:-140px;
+}
+.circle.two{
+width:300px;height:300px;
+background:rgba(255,255,255,.18);
+border-radius:50%;
+position:absolute;
+right:-40px;
+}
+
+/* ILLUSTRATION */
+/* Illustration image */
+.illus {
+    width: 80%;          /* increase size slightly */
+    max-width: 520px;     /* controls max growth */
+    height: auto;
+    margin-left: 20px;    /* pushes image a bit right */
+    animation: float 6s ease-in-out infinite;
+}
+
+/* Image container */
+.image-section {
+    width: 50%;           /* was smaller earlier */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+/* Subtle floating animation */
+@keyframes float {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+    100% { transform: translateY(0); }
+}
+
+
+/* ANIMATIONS */
+@keyframes fadeUp{
+from{opacity:0;transform:translateY(30px)}
+to{opacity:1;transform:none}
+}
+@keyframes float{
+0%,100%{transform:translateY(0)}
+50%{transform:translateY(-12px)}
+}
+
+/* MOBILE */
+@media(max-width:900px){
+.auth-box{flex-direction:column}
+.auth-left,.auth-right{width:100%}
+.auth-right{height:260px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="auth-box">
+
+<!-- LEFT -->
+<div class="auth-left">
+
+<div class="auth-title">
+CityPulse Citizen Login
+</div>
+
+<form method="POST" action="/login">
+
+<div class="input-wrap">
+<input type="text" name="phone" placeholder="Registered phone number" required>
+</div>
+
+<div class="input-wrap">
+<input type="password" name="password" placeholder="Password" required>
+</div>
+
+<div class="input-wrap">
+<select name="role">
+<option value="user">Citizen</option>
+<option value="admin">Admin</option>
+</select>
+</div>
+
+<button class="btn" type="submit">Login</button>
+
+</form>
+
+<p class="helper">
+Smart City Issue Reporting & Tracking System
+</p>
+
+</div>
+
+<!-- RIGHT -->
+<div class="auth-right">
+<div class="circle one"></div>
+<div class="circle two"></div>
+
+<!-- keep your image -->
+<img src="/static/uploads/Nerd-rafiki.png" class="illus">
+</div>
+
+</div>
+
+</body>
+</html>

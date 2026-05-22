@@ -1,0 +1,80 @@
+CityPulse/
+├── app.py                  # Main Flask app
+├── requirements.txt        # Python dependencies
+├── config.py               # Database and secret key config
+├── static/
+│   ├── css/
+│   │   └── style.css
+│   ├── js/
+│   │   └── script.js
+│   └── uploads/            # For user-uploaded images
+├── templates/
+│   ├── index.html           # Landing page / Login
+│   ├── register.html
+│   ├── dashboard.html
+│   ├── civic_issue.html
+│   ├── emergency.html
+│   ├── women_safety.html
+│   ├── admin_dashboard.html
+│   └── tracking.html
+└── utils.py                # Utility functions (Haversine, nearest authority)
+
+
+
+
+pip install PyMySQL
+pip install Werkzeug==2.3.7
+pip install Flask==2.3.3 
+
+
+
+git config --global user.name "Karn Gaikwad"
+git config --global user.email "karn@example.com"
+
+
+
+6. Heatmap of Problem Areas
+
+Visualize:
+
+Accident-prone zones
+
+Garbage complaint density
+
+Crime areas
+
+Tech:
+Leaflet Heatmap plugin (FREE)
+
+
+
+4. SOS Countdown for Women Safety
+
+Smart feature 🔥
+
+After SOS click:
+
+10-second countdown
+
+Cancel button (false alert prevention)
+
+Auto-record audio (optional)
+
+
+Real-Time Chat (User ↔ Admin)
+
+Why: Helps coordination like Swiggy/Zomato support
+
+Features:
+
+User can chat with assigned admin
+
+Admin can send updates (“On the way”, “Issue resolved”)
+
+Chat saved in DB
+
+Tech:
+
+AJAX polling / WebSockets (optional)
+
+Simple chat table

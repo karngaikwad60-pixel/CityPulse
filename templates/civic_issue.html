@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Report Civic Issue</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body {
+            min-height: 100vh;
+            background: #f1f5f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* MAIN CONTAINER */
+        .container {
+            width: 1000px;
+            max-width: 95%;
+            background: #fff;
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            box-shadow: 0 30px 60px rgba(0,0,0,.35);
+            animation: fadeUp .8s ease;
+        }
+
+        /* LEFT IMAGE PANEL (Kept from your original code) */
+        .image-section {
+            width: 42%;
+            position: relative;
+            background: url("/static/uploads/Navigation-rafiki.png");
+            background-size: cover;
+            background-position: center;
+            border-right: 1px solid #eee;
+        }
+
+        /* FORM SECTION */
+        .form-section {
+            width: 58%;
+            padding: 40px;
+            position: relative;
+        }
+
+        /* POP MESSAGE STYLES */
+        #statusMsg {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+        .msg-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .msg-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+
+        .form-section h2 { font-size: 26px; color: #0f172a; }
+        #handled_by { font-size: 14px; color: #475569; margin-bottom: 18px; }
+
+        label { display: block; margin-top: 14px; font-weight: 500; color: #1f2937; }
+
+        select, input[type="file"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 6px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        /* VALIDATION ERROR STYLE */
+        .is-invalid {
+            border: 2px solid #ef4444 !important;
+            background-color: #fef2f2;
+        }
+
+        button {
+            margin-top: 22px;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: .3s;
+        }
+
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(37, 99, 235, .5); }
+
+        #map { height: 280px; margin-top: 22px; border-radius: 12px; border: 1px solid #e5e7eb; }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        @media(max-width:768px){
+            .container { flex-direction: column; }
+            .image-section { width: 100%; height: 220px; }
+            .form-section { width: 100%; padding: 25px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="image-section"></div>
+
+    <div class="form-section">
+        <h2 id="title">Civic Issue</h2>
+        <p id="handled_by">Handled by: Municipal Department</p>
+
+        <div id="statusMsg"></div>
+
+       <form id="issueForm" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="issue_type" id="issue_type">
+
+            <label>Select Issue</label>
+            <select name="description" id="description">
+                <option value="">-- Choose Issue --</option>
+            </select>
+
+            <label>Enter Location Landmark</label>
+            <input type="text" id="manual_location" name="manual_location" placeholder="e.g. Near SM Joshi College">
+
+            <label>Upload Image</label>
+            <input type="file" id="image" name="image" accept="image/*">
+
+            <input type="hidden" name="lat" id="lat">
+            <input type="hidden" name="lon" id="lon">
+
+            <button type="submit" id="submitBtn">Submit Complaint</button>
+        </form>
+
+        <div id="map"></div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const dept = params.get('type') || 'civic';
+    const form = document.getElementById('issueForm');
+    const statusMsg = document.getElementById('statusMsg');
+
+    const config = {
+        civic: { title: "🏗 Civic Issues", options: ["Road Damage","Garbage","Streetlight Issue"] },
+        electricity: { title: "⚡ Electricity Issues", options: ["Power Cut","Transformer Damage","Fallen Pole"] },
+        water: { title: "🚰 Water Issues", options: ["Water Leakage","No Water Supply","Sewer Overflow"] },
+        animal: { title: "🐾 Animal Issues", options: ["Injured Animal","Stray Dog","Dead Animal"] },
+        transport: { title: "🚌 Transport Issues", options: ["Bus Not Arriving","Rash Driving"] }
+    };
+
+    const current = config[dept] || config.civic;
+    document.getElementById("title").innerText = current.title;
+    document.getElementById("issue_type").value = dept;
+
+    const select = document.getElementById("description");
+    current.options.forEach(issue => {
+        const opt = document.createElement("option");
+        opt.value = issue;
+        opt.textContent = issue;
+        select.appendChild(opt);
+    });
+
+    /* MAP LOGIC */
+    function initMap(lat, lon) {
+        const map = L.map('map').setView([lat, lon], 17);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        L.marker([lat, lon]).addTo(map).bindPopup("Current Location").openPopup();
+    }
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            document.getElementById("lat").value = pos.coords.latitude;
+            document.getElementById("lon").value = pos.coords.longitude;
+            initMap(pos.coords.latitude, pos.coords.longitude);
+        }, () => initMap(18.5204, 73.8567));
+    }
+
+    /* VALIDATION & SUBMIT */
+    form.addEventListener('submit', function(e) {
+
+    const desc = document.getElementById('description');
+    const loc = document.getElementById('manual_location');
+    const img = document.getElementById('image');
+
+    let hasError = false;
+    statusMsg.style.display = 'none';
+
+    [desc, loc, img].forEach(el => el.classList.remove('is-invalid'));
+
+    if (!desc.value) { desc.classList.add('is-invalid'); hasError = true; }
+    if (!loc.value.trim()) { loc.classList.add('is-invalid'); hasError = true; }
+    if (img.files.length === 0) { img.classList.add('is-invalid'); hasError = true; }
+
+    if (hasError) {
+        e.preventDefault();  // ❌ only block when error
+        statusMsg.innerText = "Please fill all fields";
+        statusMsg.className = "msg-error";
+        statusMsg.style.display = 'block';
+    }
+    // ✅ otherwise form will go to Flask
+});
+    
+
+    // Remove error border on typing
+    document.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('input', () => el.classList.remove('is-invalid'));
+    });
+</script>
+
+</body>
+</html>

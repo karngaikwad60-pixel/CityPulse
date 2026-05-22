@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ role }} Tracking – Issue #{{ item.id }}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(160deg, #f9f9f9, #fffffffb);
+    padding: 30px 10%;
+}
+
+/* MAP */
+#map {
+    height: 450px;
+    border-radius: 14px;
+}
+
+/* CHAT */
+.chat-box {
+    height: 260px;
+    overflow-y: auto;
+    background: #f9fafb;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+}
+
+.message {
+    max-width: 70%;
+    padding: 8px 12px;
+    margin: 6px 0;
+    border-radius: 12px;
+    font-size: 0.9rem;
+}
+
+.admin {
+    background: #4f46e5;
+    color: white;
+    margin-left: auto;
+}
+
+.user {
+    background: #e5e7eb;
+}
+
+.timestamp {
+    font-size: 10px;
+    margin-top: 3px;
+    opacity: 0.7;
+}
+
+.chat-input {
+    display: flex;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.chat-input input {
+    flex: 1;
+    padding: 8px;
+}
+
+.chat-input button {
+    background: #dc2626;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+}
+
+/* TRACKING LABEL */
+.tracking-label {
+    margin: 10px 0;
+    font-weight: 600;
+}
+.live { color: red; }
+.static { color: green; }
+</style>
+</head>
+
+<body>
+
+<h2>{{ role }} Tracking – Issue #{{ item.id }}</h2>
+
+<!-- TRACK MODE LABEL -->
+<div class="tracking-label">
+📍 Tracking Mode:
+{% if 'women' in (item.issue_type or item.emergency_type)|lower %}
+    <span class="live">LIVE (Women Safety)</span>
+{% else %}
+    <span class="static">STATIC</span>
+{% endif %}
+</div>
+
+<div id="map"></div>
+
+<hr>
+<h3>💬 Live Chat</h3>
+
+<div id="messages" class="chat-box"></div>
+
+<div class="chat-input">
+    <input type="text" id="msg" placeholder="Type message...">
+    <button id="sendBtn">Send</button>
+</div>
+
+<!-- MAP -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+
+<script>
+let userLat = {{ item.lat or 18.5204 }};
+let userLon = {{ item.lon or 73.8567 }};
+let adminLat = {{ admin.lat or 18.5204 }};
+let adminLon = {{ admin.lon or 73.8567 }};
+
+// ✅ CONDITION
+const isWomenSafety = "{{ item.issue_type or item.emergency_type }}".toLowerCase().includes("women");
+
+const map = L.map('map').setView([userLat, userLon], 15);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+const userMarker = L.marker([userLat, userLon]).addTo(map);
+const adminMarker = L.marker([adminLat, adminLon]).addTo(map);
+
+let routeControl = L.Routing.control({
+    waypoints: [L.latLng(adminLat, adminLon), L.latLng(userLat, userLon)],
+    addWaypoints: false
+}).addTo(map);
+
+// ✅ ADMIN ALWAYS LIVE
+if (navigator.geolocation){
+    setInterval(() => {
+        navigator.geolocation.getCurrentPosition(pos => {
+            adminLat = pos.coords.latitude;
+            adminLon = pos.coords.longitude;
+
+            adminMarker.setLatLng([adminLat, adminLon]);
+
+            routeControl.setWaypoints([
+                L.latLng(adminLat, adminLon),
+                L.latLng(userLat, userLon)
+            ]);
+        });
+    }, 5000);
+}
+
+// ✅ USER TRACKING CONDITION
+if(isWomenSafety){
+    // 🔴 LIVE USER TRACKING
+    setInterval(() => {
+        fetch('/get_user_location/{{ item.user_id }}')
+        .then(res => res.json())
+        .then(loc => {
+            if(loc.lat && loc.lon){
+                userLat = parseFloat(loc.lat);
+                userLon = parseFloat(loc.lon);
+
+                userMarker.setLatLng([userLat, userLon]);
+
+                routeControl.setWaypoints([
+                    L.latLng(adminLat, adminLon),
+                    L.latLng(userLat, userLon)
+                ]);
+            }
+        });
+    }, 5000);
+} else {
+    // 🟢 STATIC (no updates)
+    console.log("Static tracking active");
+}
+</script>
+
+<!-- CHAT -->
+<script>
+const requestType = "{{ request_type }}";
+const requestId = {{ request_id }};
+const adminId = {{ admin.id }};
+
+function escapeHtml(str){
+  return String(str)
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;');
+}
+
+function formatTime(ts){
+  const d = new Date(ts);
+  return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+
+async function loadMessages(){
+  const box = document.getElementById('messages');
+
+  const res = await fetch(`/get_messages/${requestType}/${requestId}`);
+  const data = await res.json();
+
+  box.innerHTML = '';
+
+  data.forEach(m => {
+    const el = document.createElement('div');
+    el.className = "message " + (m.sender === 'admin' ? 'admin' : 'user');
+
+    el.innerHTML = `
+      ${escapeHtml(m.message)}
+      <div class="timestamp">${formatTime(m.created_at)}</div>
+    `;
+
+    box.appendChild(el);
+  });
+
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendMessage(){
+  const input = document.getElementById('msg');
+  const message = input.value.trim();
+  if(!message) return;
+
+  await fetch('/send_message', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      request_type: requestType,
+      request_id: requestId,
+      sender: 'admin',
+      sender_id: adminId,
+      message: message
+    })
+  });
+
+  input.value = '';
+  loadMessages();
+}
+
+document.getElementById('sendBtn').onclick = sendMessage;
+document.getElementById('msg').addEventListener('keypress', e => {
+  if(e.key === 'Enter') sendMessage();
+});
+
+setInterval(loadMessages, 3000);
+loadMessages();
+</script>
+
+</body>
+</html>

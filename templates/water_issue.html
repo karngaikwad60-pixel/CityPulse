@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Water & Sanitation</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+</head>
+<body>
+
+<h2>🚰 Water & Sanitation Issues</h2>
+
+<form method="POST" action="/civic_issue" enctype="multipart/form-data">
+
+    <input type="hidden" name="issue_type" value="Water Issue">
+    <input type="hidden" name="department" value="Water Supply">
+
+    <select name="description" required>
+        <option>Dirty Drinking Water</option>
+        <option>Low Water Pressure</option>
+        <option>No Water Supply</option>
+        <option>Sewer Overflow</option>
+    </select><br><br>
+
+    Upload Image: <input type="file" name="image"><br><br>
+
+    <input type="hidden" id="lat" name="lat">
+    <input type="hidden" id="lon" name="lon">
+
+    <button type="submit">Register Complaint</button>
+</form>
+
+<div id="map" style="height:400px;"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<!-- LOCATION SCRIPT HERE -->
+
+<script>
+let mapInitialized = false;
+
+function initLocation() {
+    if (!navigator.geolocation) {
+        alert("Geolocation not supported");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        function (pos) {
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+
+            document.getElementById('lat').value = lat;
+            document.getElementById('lon').value = lon;
+
+            if (!mapInitialized) {
+                const map = L.map('map').setView([lat, lon], 18);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                L.marker([lat, lon]).addTo(map).bindPopup("Your Location").openPopup();
+                mapInitialized = true;
+            }
+        },
+        function () {
+            alert("Enable GPS and allow location access");
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+}
+
+window.onload = initLocation;
+</script>
+
+</body>
+</html>

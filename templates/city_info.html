@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>CityPulse Smart City Info</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<style>
+
+body{
+font-family:Poppins,sans-serif;
+background:#f4f7fb;
+margin:0;
+padding:20px;
+}
+
+.header{
+background:white;
+padding:20px;
+border-radius:15px;
+box-shadow:0 5px 20px rgba(0,0,0,.1);
+margin-bottom:20px;
+}
+
+h1{
+margin:0;
+}
+
+#map{
+height:400px;
+border-radius:15px;
+margin-bottom:20px;
+}
+
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+gap:15px;
+}
+
+.card{
+background:white;
+padding:18px;
+border-radius:15px;
+box-shadow:0 4px 15px rgba(0,0,0,.08);
+}
+
+.card h3{
+margin-top:0;
+color:#dc2626;
+}
+
+ul{
+padding-left:18px;
+}
+
+.loader{
+font-weight:bold;
+color:#dc2626;
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="header">
+<h1>🏙 City Information</h1>
+
+<p id="cityName" class="loader">
+Detecting your location...
+</p>
+
+</div>
+
+<div id="map"></div>
+
+<div class="cards">
+
+<div class="card">
+<h3>🏥 Hospitals Nearby</h3>
+<ul id="hospitalList">
+<li>Loading...</li>
+</ul>
+</div>
+
+<div class="card">
+<h3>🚔 Police Stations</h3>
+<ul id="policeList">
+<li>Loading...</li>
+</ul>
+</div>
+
+<div class="card">
+<h3>🏫 Schools Nearby</h3>
+<ul id="schoolList">
+<li>Loading...</li>
+</ul>
+</div>
+
+<div class="card">
+<h3>🏛 Government Offices</h3>
+<ul id="govList">
+<li>Loading...</li>
+</ul>
+</div>
+
+<div class="card">
+<h3>📍 Famous Places</h3>
+<ul id="spotList">
+<li>Loading...</li>
+</ul>
+</div>
+
+</div>
+
+
+<script>
+
+let map;
+let marker;
+
+navigator.geolocation.getCurrentPosition(success,error);
+
+function success(position){
+
+let lat=position.coords.latitude;
+let lon=position.coords.longitude;
+
+
+map=L.map('map').setView([lat,lon],13);
+
+L.tileLayer(
+'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+{
+maxZoom:19
+}
+).addTo(map);
+
+
+marker=L.marker([lat,lon])
+.addTo(map)
+.bindPopup("You are here")
+.openPopup();
+
+
+// reverse geocode city
+
+fetch(
+`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
+)
+.then(res=>res.json())
+.then(data=>{
+
+let city=
+data.address.city ||
+data.address.town ||
+data.address.county ||
+data.address.state;
+
+document.getElementById("cityName").innerHTML=`
+📍 Current City:
+<b>${city}</b><br><br>
+
+State:
+${data.address.state}<br>
+
+Country:
+${data.address.country}
+`;
+
+});
+
+loadPlaces(lat,lon);
+
+}
+
+
+function error(){
+alert("Location access required");
+}
+
+
+
+function loadPlaces(lat,lon){
+
+getData(
+`
+[out:json];
+
+(
+node["amenity"="hospital"](around:7000,${lat},${lon});
+);
+
+out;
+`,
+"hospitalList"
+);
+
+
+getData(
+`
+[out:json];
+
+(
+node["amenity"="police"](around:7000,${lat},${lon});
+);
+
+out;
+`,
+"policeList"
+);
+
+
+
+getData(
+`
+[out:json];
+
+(
+node["amenity"="school"](around:7000,${lat},${lon});
+);
+
+out;
+`,
+"schoolList"
+);
+
+
+getData(
+`
+[out:json];
+
+(
+node["office"="government"](around:7000,${lat},${lon});
+);
+
+out;
+`,
+"govList"
+);
+
+
+getData(
+`
+[out:json];
+
+(
+node["tourism"](around:10000,${lat},${lon});
+);
+
+out;
+`,
+"spotList"
+);
+
+
+}
+
+
+
+function getData(query,id){
+
+fetch(
+"https://overpass-api.de/api/interpreter",
+{
+method:"POST",
+body:query
+}
+)
+.then(res=>res.json())
+.then(data=>{
+
+let html="";
+
+if(data.elements.length===0){
+
+html="<li>No data found</li>";
+
+}
+else{
+
+data.elements
+.slice(0,8)
+.forEach(place=>{
+
+html+=`
+<li>
+${place.tags.name || "Unknown"}
+</li>
+`;
+
+});
+
+}
+
+document.getElementById(id).innerHTML=html;
+
+})
+.catch(()=>{
+
+document.getElementById(id)
+.innerHTML="<li>Unable to load</li>";
+
+});
+
+}
+
+</script>
+
+</body>
+</html>   

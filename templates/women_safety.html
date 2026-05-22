@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Women Safety SOS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            background:#0f172a;
+            color:white;
+            text-align:center;
+            font-family:Poppins;
+            padding-top:80px;
+        }
+        .sos-btn {
+            width:220px;
+            height:220px;
+            border-radius:50%;
+            background:red;
+            color:white;
+            font-size:36px;
+            font-weight:bold;
+            border:none;
+            box-shadow:0 0 30px red;
+            animation:pulse 1.2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow:0 0 20px red; }
+            50% { box-shadow:0 0 50px red; }
+            100% { box-shadow:0 0 20px red; }
+        }
+    </style>
+</head>
+<body>
+
+<h2>🚨 EMERGENCY SOS 🚨</h2>
+<p>Press ONLY if you are in danger</p>
+
+<button class="sos-btn" onclick="sendSOS()">SOS</button>
+
+<audio id="alarm" loop>
+    <source src="/static/sos.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+let alarm = document.getElementById("alarm");
+
+function sendSOS(){
+    alarm.play();
+
+    if (navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(pos=>{
+            fetch('/women_safety',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({
+                    lat:pos.coords.latitude,
+                    lon:pos.coords.longitude
+                })
+            }).then(res=>res.json())
+              .then(()=>{
+                  alert("🚔 Police notified! Stay calm.");
+              });
+        });
+    }
+}
+</script>
+
+</body>
+</html>
