@@ -448,13 +448,14 @@ def admin_dashboard(role):
 @app.route('/admin/track/<role>/<int:item_id>')
 def admin_track_item(role, item_id):
 
+    # FIXED
     if 'admin_id' not in session:
-        return redirect('/')
+        return redirect('/login')
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    if role == 'Municipal':
+    if role == "Municipal":
 
         cursor.execute("""
         SELECT
@@ -493,6 +494,10 @@ def admin_track_item(role, item_id):
 
     item=cursor.fetchone()
 
+    if item is None:
+        conn.close()
+        return "Issue not found"
+
 
     cursor.execute("""
     SELECT *
@@ -504,15 +509,16 @@ def admin_track_item(role, item_id):
 
     conn.close()
 
+
     return render_template(
-        'tracking.html',
+        "tracking.html",
         item=item,
         role=role,
         admin=admin,
         request_type=request_type,
         request_id=item_id
     )
-    
+
 # ------------------- Update Status -------------------
 @app.route('/admin/update_status', methods=['POST'])
 def update_status():
