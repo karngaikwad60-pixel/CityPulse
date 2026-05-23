@@ -448,7 +448,7 @@ def admin_dashboard(role):
 @app.route('/admin/track/<role>/<int:item_id>')
 def admin_track_item(role, item_id):
 
-    if 'admin_id' not in session:
+    if 'admin' not in session:
         return redirect('/login')
 
     conn = get_db_connection()
@@ -457,11 +457,7 @@ def admin_track_item(role, item_id):
     if role == "Municipal":
 
         cursor.execute("""
-        SELECT
-            ci.*,
-            u.name,
-            u.phone,
-            u.id AS user_id
+        SELECT ci.*,u.name,u.phone,u.id as user_id
         FROM civic_issues ci
         JOIN users u
         ON ci.user_id=u.id
@@ -473,11 +469,7 @@ def admin_track_item(role, item_id):
     else:
 
         cursor.execute("""
-        SELECT
-            e.*,
-            u.name,
-            u.phone,
-            u.id AS user_id
+        SELECT e.*,u.name,u.phone,u.id as user_id
         FROM emergencies e
         JOIN users u
         ON e.user_id=u.id
@@ -494,11 +486,10 @@ def admin_track_item(role, item_id):
         return "Issue not found"
 
 
-    cursor.execute("""
-    SELECT *
-    FROM admins
-    WHERE id=?
-    """,(session['admin_id'],))
+    cursor.execute(
+        "SELECT * FROM admins WHERE id=?",
+        (session['admin']['id'],)
+    )
 
     admin=cursor.fetchone()
 
