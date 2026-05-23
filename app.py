@@ -446,7 +446,7 @@ def admin_dashboard(role):
     )
 # ------------------- Admin Track -------------------
 @app.route('/admin/track/<role>/<int:item_id>')
-def admin_track_item():
+def admin_track_item(role, item_id):
 
     if 'admin_id' not in session:
         return redirect('/')
@@ -491,11 +491,9 @@ def admin_track_item():
         request_type="emergency"
 
 
-
     item=cursor.fetchone()
 
 
-    # GET FULL ADMIN RECORD
     cursor.execute("""
     SELECT *
     FROM admins
@@ -506,21 +504,15 @@ def admin_track_item():
 
     conn.close()
 
-
     return render_template(
-
         'tracking.html',
-
         item=item,
         role=role,
-
         admin=admin,
-
         request_type=request_type,
         request_id=item_id
-
     )
-   
+    
 # ------------------- Update Status -------------------
 @app.route('/admin/update_status', methods=['POST'])
 def update_status():
