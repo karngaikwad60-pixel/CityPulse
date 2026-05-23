@@ -520,6 +520,50 @@ def admin_track_item():
         request_id=item_id
 
     )
+    #--------------------trrrraackkkkk----------------------
+    @app.route('/update_admin_location',methods=['POST'])
+def update_admin_location():
+
+    if 'admin_id' not in session:
+        return jsonify({
+            "status":"error"
+        })
+
+    data=request.get_json()
+
+    conn=get_db_connection()
+
+    cursor=conn.cursor()
+
+    cursor.execute(
+    """
+
+    UPDATE admins
+    SET
+    lat=?,
+    lon=?
+
+    WHERE id=?
+
+    """,
+
+    (
+
+    data['lat'],
+    data['lon'],
+    session['admin_id']
+
+    )
+
+    )
+
+    conn.commit()
+
+    conn.close()
+
+    return jsonify({
+        "status":"success"
+    })
 # ------------------- Update Status -------------------
 @app.route('/admin/update_status', methods=['POST'])
 def update_status():
