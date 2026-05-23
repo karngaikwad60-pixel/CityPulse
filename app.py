@@ -672,84 +672,77 @@ def user_requests():
 #---------------------------------------------------------
 
 # -------------------------------
-# SEND MESSAGE
-
-# ✅ SEND MESSAGE
+# ================= SEND MESSAGE =================
 @app.route('/send_message', methods=['POST'])
 def send_message():
-    data = request.json
+    data = request.get_json()
 
-    # ✅ Normalize sender (VERY IMPORTANT)
-    sender = str(data.get('sender')).strip().lower()
+    sender = str(data.get('sender', '')).strip().lower()
 
     if sender not in ['user', 'admin']:
-        sender = 'user'  # default safety
+        return jsonify({
+            "status":"error",
+            "message":"Invalid sender"
+        }),400
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
-        INSERT INTO chat_messages 
-        (request_type, request_id, sender, sender_id, message)
-        VALUES (?, ?, ?, ?, ?)
-    """, (
+        INSERT INTO chat_messages
+        (request_type,request_id,sender,sender_id,message)
+        VALUES(?,?,?,?,?)
+    """,(
         data['request_type'],
         data['request_id'],
-        sender,                # ✅ fixed
+        sender,
         data['sender_id'],
         data['message']
     ))
 
     conn.commit()
+
     cursor.close()
     conn.close()
 
-    return jsonify({"status": "success"})
-#--------------------------------------------------------------------------------------
+    return jsonify({
+        "status":"success"
+    })
 
-# ✅ GET MESSAGES
-from datetime import timedelta
+
+# ================= GET MESSAGES =================
 
 @app.route('/get_messages/<request_type>/<int:request_id>')
-def get_messages(request_type, request_id):
+def get_messages(request_type,request_id):
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    conn=get_db_connection()
+    cursor=conn.cursor()
 
     cursor.execute("""
-        SELECT sender, message, created_at
+        SELECT sender,message,created_at
         FROM chat_messages
-        WHERE request_type=? AND request_id=?
-        ORDER BY created_at ASC
-    """, (request_type, request_id))
+        WHERE request_type=?
+        AND request_id=?
+        ORDER BY id ASC
+    """,(request_type,request_id))
 
-    messages = cursor.fetchall()
+    rows=cursor.fetchall()
 
-    result = []
+    result=[]
 
-    for m in messages:
-        # ✅ FIX sender
-        sender = str(m['sender']).strip().lower()
-
-        if sender not in ['user', 'admin']:
-            sender = 'admin'
-
-        # ✅ FIX datetime
-        created_at = ""
-        if m['created_at']:
-            created_at = m['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+    for row in rows:
 
         result.append({
-            "sender": sender,
-            "message": m['message'],
-            "created_at": created_at
+            "sender":str(row["sender"]).lower().strip(),
+            "message":row["message"],
+            "created_at":str(row["created_at"])
         })
 
     cursor.close()
     conn.close()
 
     return jsonify(result)
-#--------------------------------------------------------------------------------------
+    #-------------------------------------------------------------
 
 
 

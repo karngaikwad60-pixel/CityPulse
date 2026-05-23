@@ -112,140 +112,254 @@ body {
 <!-- MAP -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
-
 <script>
-let userLat = {{ item.lat or 18.5204 }};
-let userLon = {{ item.lon or 73.8567 }};
-let adminLat = {{ admin.lat or 18.5204 }};
-let adminLon = {{ admin.lon or 73.8567 }};
 
-// ✅ CONDITION
-const isWomenSafety = "{{ item.issue_type or item.emergency_type }}".toLowerCase().includes("women");
+let userLat={{ item.lat or 18.5204 }};
+let userLon={{ item.lon or 73.8567 }};
 
-const map = L.map('map').setView([userLat, userLon], 15);
+let adminLat=userLat;
+let adminLon=userLon;
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+const isWomenSafety=
+"{{ item.issue_type or item.emergency_type }}"
+.toLowerCase()
+.includes("women");
 
-const userMarker = L.marker([userLat, userLon]).addTo(map);
-const adminMarker = L.marker([adminLat, adminLon]).addTo(map);
 
-let routeControl = L.Routing.control({
-    waypoints: [L.latLng(adminLat, adminLon), L.latLng(userLat, userLon)],
-    addWaypoints: false
+const map=L.map('map').setView(
+[userLat,userLon],
+16
+);
+
+L.tileLayer(
+'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+{
+maxZoom:19
+}
+).addTo(map);
+
+
+const userMarker=L.marker(
+[userLat,userLon]
+)
+.addTo(map)
+.bindPopup("Citizen");
+
+
+const adminMarker=L.marker(
+[adminLat,adminLon]
+)
+.addTo(map)
+.bindPopup("Admin");
+
+
+let routeControl=L.Routing.control({
+waypoints:[
+L.latLng(adminLat,adminLon),
+L.latLng(userLat,userLon)
+],
+addWaypoints:false,
+draggableWaypoints:false
 }).addTo(map);
 
-// ✅ ADMIN ALWAYS LIVE
-if (navigator.geolocation){
-    setInterval(() => {
-        navigator.geolocation.getCurrentPosition(pos => {
-            adminLat = pos.coords.latitude;
-            adminLon = pos.coords.longitude;
 
-            adminMarker.setLatLng([adminLat, adminLon]);
 
-            routeControl.setWaypoints([
-                L.latLng(adminLat, adminLon),
-                L.latLng(userLat, userLon)
-            ]);
-        });
-    }, 5000);
+/* HIGH ACCURACY ADMIN GPS */
+
+if(navigator.geolocation){
+
+navigator.geolocation.watchPosition(
+
+function(pos){
+
+adminLat=pos.coords.latitude;
+adminLon=pos.coords.longitude;
+
+adminMarker.setLatLng([
+adminLat,
+adminLon
+]);
+
+routeControl.setWaypoints([
+L.latLng(adminLat,adminLon),
+L.latLng(userLat,userLon)
+]);
+
+},
+
+function(err){
+console.log(err);
+},
+
+{
+enableHighAccuracy:true,
+maximumAge:0,
+timeout:10000
 }
 
-// ✅ USER TRACKING CONDITION
+);
+
+}
+
+
+
+/* USER LIVE TRACKING */
+
 if(isWomenSafety){
-    // 🔴 LIVE USER TRACKING
-    setInterval(() => {
-        fetch('/get_user_location/{{ item.user_id }}')
-        .then(res => res.json())
-        .then(loc => {
-            if(loc.lat && loc.lon){
-                userLat = parseFloat(loc.lat);
-                userLon = parseFloat(loc.lon);
 
-                userMarker.setLatLng([userLat, userLon]);
+setInterval(()=>{
 
-                routeControl.setWaypoints([
-                    L.latLng(adminLat, adminLon),
-                    L.latLng(userLat, userLon)
-                ]);
-            }
-        });
-    }, 5000);
-} else {
-    // 🟢 STATIC (no updates)
-    console.log("Static tracking active");
+fetch('/get_user_location/{{ item.user_id }}')
+
+.then(r=>r.json())
+
+.then(loc=>{
+
+if(loc.lat && loc.lon){
+
+userLat=parseFloat(loc.lat);
+userLon=parseFloat(loc.lon);
+
+userMarker.setLatLng([
+userLat,
+userLon
+]);
+
+routeControl.setWaypoints([
+L.latLng(adminLat,adminLon),
+L.latLng(userLat,userLon)
+]);
+
 }
+
+})
+
+},3000)
+
+}
+
 </script>
 
 <!-- CHAT -->
 <script>
-const requestType = "{{ request_type }}";
-const requestId = {{ request_id }};
-const adminId = {{ admin.id }};
 
-function escapeHtml(str){
-  return String(str)
-    .replaceAll('&','&amp;')
-    .replaceAll('<','&lt;')
-    .replaceAll('>','&gt;');
-}
+const requestType="{{request_type}}";
+const requestId={{request_id}};
+const adminId={{admin.id}};
 
-function formatTime(ts){
-  const d = new Date(ts);
-  return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-}
 
 async function loadMessages(){
-  const box = document.getElementById('messages');
 
-  const res = await fetch(`/get_messages/${requestType}/${requestId}`);
-  const data = await res.json();
+const box=document.getElementById("messages");
 
-  box.innerHTML = '';
+try{
 
-  data.forEach(m => {
-    const el = document.createElement('div');
-    el.className = "message " + (m.sender === 'admin' ? 'admin' : 'user');
+const res=await fetch(
+`/get_messages/${requestType}/${requestId}`
+);
 
-    el.innerHTML = `
-      ${escapeHtml(m.message)}
-      <div class="timestamp">${formatTime(m.created_at)}</div>
-    `;
+const data=await res.json();
 
-    box.appendChild(el);
-  });
+box.innerHTML="";
 
-  box.scrollTop = box.scrollHeight;
-}
+data.forEach(m=>{
 
-async function sendMessage(){
-  const input = document.getElementById('msg');
-  const message = input.value.trim();
-  if(!message) return;
+const div=document.createElement("div");
 
-  await fetch('/send_message', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({
-      request_type: requestType,
-      request_id: requestId,
-      sender: 'admin',
-      sender_id: adminId,
-      message: message
-    })
-  });
+div.className=
+"message "+
+(m.sender==="admin"
+? "admin"
+: "user");
 
-  input.value = '';
-  loadMessages();
-}
+div.innerHTML=`
+${m.message}
+<div class="timestamp">
+${m.created_at}
+</div>
+`;
 
-document.getElementById('sendBtn').onclick = sendMessage;
-document.getElementById('msg').addEventListener('keypress', e => {
-  if(e.key === 'Enter') sendMessage();
+box.appendChild(div);
+
 });
 
-setInterval(loadMessages, 3000);
+box.scrollTop=box.scrollHeight;
+
+}
+catch(err){
+console.log(err);
+}
+
+}
+
+
+
+async function sendMessage(){
+
+const input=
+document.getElementById("msg");
+
+const text=
+input.value.trim();
+
+if(!text)return;
+
+try{
+
+await fetch("/send_message",{
+
+method:"POST",
+
+headers:{
+'Content-Type':'application/json'
+},
+
+body:JSON.stringify({
+
+request_type:requestType,
+request_id:requestId,
+sender:"admin",
+sender_id:adminId,
+message:text
+
+})
+
+});
+
+input.value="";
+
 loadMessages();
+
+}
+catch(err){
+console.log(err);
+}
+
+}
+
+
+document
+.getElementById("sendBtn")
+.onclick=sendMessage;
+
+
+document
+.getElementById("msg")
+.addEventListener("keypress",e=>{
+
+if(e.key==="Enter"){
+
+sendMessage();
+
+}
+
+});
+
+
+loadMessages();
+
+setInterval(loadMessages,2000);
+
 </script>
 
 </body>
