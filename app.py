@@ -573,50 +573,8 @@ def update_admin_location():
 
     return jsonify({"status":"success"})
 
- #--------------------trrrraackkkkk----------------------
-@app.route('/update_admin_location',methods=['POST'])
-def update_admin_location():
+#------------------------------------------------------
 
-    if 'admin_id' not in session:
-        return jsonify({
-            "status":"error"
-        })
-
-    data=request.get_json()
-
-    conn=get_db_connection()
-
-    cursor=conn.cursor()
-
-    cursor.execute(
-    """
-
-    UPDATE admins
-    SET
-    lat=?,
-    lon=?
-
-    WHERE id=?
-
-    """,
-
-    (
-
-    data['lat'],
-    data['lon'],
-    session['admin_id']
-
-    )
-
-    )
-
-    conn.commit()
-
-    conn.close()
-
-    return jsonify({
-        "status":"success"
-    })
 #----------------------------------------------------------------------------------------------     
 @app.route('/city_info')
 def city_info():
