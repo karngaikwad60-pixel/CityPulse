@@ -114,273 +114,68 @@ body {
 <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
 
 <script>
-
 let userLat = {{ item.lat or 18.5204 }};
 let userLon = {{ item.lon or 73.8567 }};
-
 let adminLat = {{ admin.lat or 18.5204 }};
 let adminLon = {{ admin.lon or 73.8567 }};
 
-const isWomenSafety =
-"{{ item.issue_type or item.emergency_type }}"
-.toLowerCase()
-.includes("women");
+// ✅ CONDITION
+const isWomenSafety = "{{ item.issue_type or item.emergency_type }}".toLowerCase().includes("women");
 
+const map = L.map('map').setView([userLat, userLon], 15);
 
-const map=L.map("map").setView(
-[userLat,userLon],
-15
-);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
+const userMarker = L.marker([userLat, userLon]).addTo(map);
+const adminMarker = L.marker([adminLat, adminLon]).addTo(map);
 
-L.tileLayer(
-'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-{
-maxZoom:19
-}
-).addTo(map);
+let routeControl = L.Routing.control({
+    waypoints: [L.latLng(adminLat, adminLon), L.latLng(userLat, userLon)],
+    addWaypoints: false
+}).addTo(map);
 
+// ✅ ADMIN ALWAYS LIVE
+if (navigator.geolocation){
+    setInterval(() => {
+        navigator.geolocation.getCurrentPosition(pos => {
+            adminLat = pos.coords.latitude;
+            adminLon = pos.coords.longitude;
 
+            adminMarker.setLatLng([adminLat, adminLon]);
 
-const userMarker=L.marker(
-[userLat,userLon]
-)
-.addTo(map)
-.bindPopup("👤 User");
-
-
-const adminMarker=L.marker(
-[adminLat,adminLon]
-)
-.addTo(map)
-.bindPopup("🚔 Admin");
-
-
-
-let routeControl=L.Routing.control({
-
-waypoints:[
-
-L.latLng(adminLat,adminLon),
-L.latLng(userLat,userLon)
-
-],
-
-addWaypoints:false,
-draggableWaypoints:false,
-fitSelectedRoutes:true,
-show:false
-
-})
-.addTo(map);
-
-
-
-function updateRoute(){
-
-routeControl.setWaypoints([
-
-L.latLng(adminLat,adminLon),
-L.latLng(userLat,userLon)
-
-]);
-
+            routeControl.setWaypoints([
+                L.latLng(adminLat, adminLon),
+                L.latLng(userLat, userLon)
+            ]);
+        });
+    }, 5000);
 }
 
-
-
-/* LIVE ADMIN GPS */
-
-if(navigator.geolocation){
-
-navigator.geolocation.watchPosition(
-
-async(position)=>{
-
-adminLat=position.coords.latitude;
-adminLon=position.coords.longitude;
-
-let accuracy=
-position.coords.accuracy;
-
-console.log(
-"Admin accuracy:",
-accuracy
-);
-
-
-/* ignore poor estimate */
-
-if(accuracy>100){
-
-console.log(
-"Waiting for better GPS"
-);
-
-return;
-
-}
-
-
-adminMarker
-.setLatLng(
-[adminLat,adminLon]
-);
-
-
-adminMarker
-.bindPopup(
-`
-🚔 Admin
-
-Accuracy:
-${Math.round(accuracy)}m
-`
-);
-
-updateRoute();
-
-
-/* save live admin location */
-
-await fetch(
-'/update_admin_location',
-{
-
-method:'POST',
-
-headers:{
-'Content-Type':'application/json'
-},
-
-body:JSON.stringify({
-
-lat:adminLat,
-lon:adminLon
-
-})
-
-}
-
-);
-
-
-},
-
-(error)=>{
-
-
-switch(error.code){
-
-case error.PERMISSION_DENIED:
-
-alert(
-"Location permission denied"
-);
-
-break;
-
-
-case error.POSITION_UNAVAILABLE:
-
-alert(
-"Location unavailable"
-);
-
-break;
-
-
-case error.TIMEOUT:
-
-alert(
-"Location timeout"
-);
-
-break;
-
-
-default:
-
-alert(
-"Unknown location error"
-);
-
-}
-
-console.log(error);
-
-},
-
-{
-
-enableHighAccuracy:true,
-timeout:15000,
-maximumAge:0
-
-}
-
-);
-
-}
-
-
-
-/* WOMEN SAFETY LIVE USER TRACKING */
-
+// ✅ USER TRACKING CONDITION
 if(isWomenSafety){
+    // 🔴 LIVE USER TRACKING
+    setInterval(() => {
+        fetch('/get_user_location/{{ item.user_id }}')
+        .then(res => res.json())
+        .then(loc => {
+            if(loc.lat && loc.lon){
+                userLat = parseFloat(loc.lat);
+                userLon = parseFloat(loc.lon);
 
-setInterval(()=>{
+                userMarker.setLatLng([userLat, userLon]);
 
-fetch(
-'/get_user_location/{{ item.user_id }}'
-)
-
-.then(
-res=>res.json()
-)
-
-.then(
-loc=>{
-
-if(
-loc.lat &&
-loc.lon
-){
-
-userLat=
-parseFloat(loc.lat);
-
-userLon=
-parseFloat(loc.lon);
-
-
-userMarker
-.setLatLng(
-[userLat,userLon]
-);
-
-updateRoute();
-
+                routeControl.setWaypoints([
+                    L.latLng(adminLat, adminLon),
+                    L.latLng(userLat, userLon)
+                ]);
+            }
+        });
+    }, 5000);
+} else {
+    // 🟢 STATIC (no updates)
+    console.log("Static tracking active");
 }
-
-}
-
-);
-
-},3000);
-
-}
-
-else{
-
-console.log(
-"Static tracking mode"
-);
-
-}
-
 </script>
-
 
 <!-- CHAT -->
 <script>
