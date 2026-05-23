@@ -446,27 +446,25 @@ def admin_dashboard(role):
     )
 # ------------------- Admin Track -------------------
 @app.route('/admin/track/<role>/<int:item_id>')
-def admin_track_item():
+def admin_track_item(role, item_id):
 
     if 'admin_id' not in session:
-        return redirect('/')
+        return redirect('/login')
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    if role == 'Municipal':
+    if role == "Municipal":
 
         cursor.execute("""
         SELECT
             ci.*,
             u.name,
             u.phone,
-            u.id as user_id
-
+            u.id AS user_id
         FROM civic_issues ci
         JOIN users u
         ON ci.user_id=u.id
-
         WHERE ci.id=?
         """,(item_id,))
 
@@ -479,23 +477,23 @@ def admin_track_item():
             e.*,
             u.name,
             u.phone,
-            u.id as user_id
-
+            u.id AS user_id
         FROM emergencies e
         JOIN users u
         ON e.user_id=u.id
-
         WHERE e.id=?
         """,(item_id,))
 
         request_type="emergency"
 
 
-
     item=cursor.fetchone()
 
+    if item is None:
+        conn.close()
+        return "Issue not found"
 
-    # GET FULL ADMIN RECORD
+
     cursor.execute("""
     SELECT *
     FROM admins
@@ -506,19 +504,13 @@ def admin_track_item():
 
     conn.close()
 
-
     return render_template(
-
-        'tracking.html',
-
+        "tracking.html",
         item=item,
         role=role,
-
         admin=admin,
-
         request_type=request_type,
         request_id=item_id
-
     )
 # ------------------- Update Status -------------------
 @app.route('/admin/update_status', methods=['POST'])
